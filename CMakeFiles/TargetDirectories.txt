@@ -1,0 +1,3 @@
+/Users/dnalwqer/Desktop/CG/Dart-Graphics-Assign01-master-build/src/common/CMakeFiles/common.dir
+/Users/dnalwqer/Desktop/CG/Dart-Graphics-Assign01-master-build/src/apps/CMakeFiles/01_raytrace.dir
+/Users/dnalwqer/Desktop/CG/Dart-Graphics-Assign01-master-build/src/common/ext/glfw/src/CMakeFiles/glfw.dir
