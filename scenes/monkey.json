@@ -2,29 +2,26 @@
     "lookat_camera": { "from": [0,0.5,4] },
     "meshes": [
         {
-            "json_mesh": "monkey_rot_subdiv.json",
-            "frame": { "o": [-1.25,-1,-1] },
-            "material": { "kd": [0.5,0.7,0.5], "ks": [0.3,0.3,0.3], "n": 100}
-        }
+            "json_mesh": "qq.json",
+            "frame": { "o": [-1.20,0.5,-3] },
+            "material": { "ks": [1,1,1], "kd": [0.725,0.71,0.68], "n": 10, "kd_txt": "qq.png"}
+       },
+       {
+            "json_mesh": "long.json",
+            "frame": { "o": [1.0,-0.4,-1.5] },
+            "material": { "ks": [1,1,1], "kd": [0.725,0.71,0.68], "n": 10}
+       }
     ],
     "surfaces": [
         {
-            "frame": { "o": [1.25,0,-1] },
-            "material": {"kd": [0.7,0.5,0.5], "ks": [0.3,0.3,0.3], "n": 20 }
-        },
-        {
             "frame": { "o": [0,-1,0], "x": [1,0,0], "y": [0,0,-1], "z": [0,1,0] },
             "radius":  10, "isquad": true,
-            "material": { "kd": [1,1,1], "ks": [0,0,0], "n": 100 }
-        },
-        {
-            "frame": { "from": [-4,10,5] },
-            "radius": 2.5, "isquad": true,
-            "material": { "kd": [0,0,0], "ks": [0,0,0], "n": 100 }
+            "material": { "kd": [1,1,1], "ks": [0,0,0], "kr": [0.5,0.5,0.5], "n": 100 }
         }
     ],
     "lights": [
-        { "frame": { "o": [4,12,5] }, "intensity": [60,60,60] }
+        { "frame": { "o": [4,22,5] }, "intensity": [100,100,100] },
+        { "frame": { "o": [-4,10,-3] }, "intensity": [10,10,10] }
     ],
     "background": [0,0,0],
     "image_samples": 15,
