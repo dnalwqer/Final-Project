@@ -143,7 +143,7 @@ vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int coun
     // compute the material response (brdf*cos)
     // accumulate recersively scaled by brdf*cos/pdf
     
-    if(count >= 1 || countC >=1)  return zero3f;
+    if(count >= 4 || countC >=4)  return zero3f;
     if(intersection.hit){
         vec3f color(0,0,0);
         vec3f m = 2*(abs(dot(ray.d, intersection.norm)) * intersection.norm + ray.d);
@@ -170,7 +170,7 @@ vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int coun
 
         //reflect
         if(intersection.mat->kr != zero3f){
-            c += (intersection.mat->kr * raytrace_ray(scene, ray3f(intersection.pos, newRay), depth, count+1, countC)) ;
+            color += (intersection.mat->kr * raytrace_ray(scene, ray3f(intersection.pos, newRay), depth, count+1, countC)) ;
         }
 
         for(int i = 0 ; i < scene->lights.size() ; ++i){
@@ -232,7 +232,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
     scene->image_samples = 1;
     if (scene->image_samples == 1) {
         // foreach image row (go over image height)
-        for( int y = offset_row; y < scene->image_height; y+= skip_row )
+        for( int y = offset_row; y < scene->image_height; y+= skip_row)
         {
             if(verbose) message("\r  rendering1 %03d/%03d        ", y, scene->image_height);
             // foreach pixel in the row (go over image width)
@@ -252,6 +252,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
     }
     // else
     else{
+        vector<vector<int>> countColor(image->width(), vector<int>(image->height(),0));
         // foreach image row (go over image height)
         for( int y = offset_row; y < scene->image_height; y+= skip_row )
         {
@@ -273,7 +274,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
                         vec3f Q_uv( ( u-0.5f ) * scene->camera->width, ( v-0.5f ) * scene->camera->height, - scene->camera->dist);
                         ray3f view_ray = transform_ray( scene->camera->frame, ray3f( zero3f, normalize(Q_uv) ) );
                         // set pixel to the color raytraced with the ray
-                        color += raytrace_ray(scene, view_ray, 0,0 ,0);
+                        color += raytrace_ray(scene, view_ray, 0, 0, 0);
                     }
                 }
                 // scale by the number of samples
@@ -281,6 +282,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
                 image->at(x, y) = color;
             }
         }
+
     }
 }
 
