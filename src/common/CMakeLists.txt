@@ -11,8 +11,8 @@ set(common_srcs
                                         # punchout
     picojson.h                          # punchout
     scene.cpp scene.h                   # punchout
-                                        # punchout
-                                        # punchout
+    intersect.h                        # punchout
+    montecarlo.h                        # punchout
                                         # punchout
     vmath.h                             # punchout
 )

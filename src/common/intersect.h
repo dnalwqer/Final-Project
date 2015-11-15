@@ -473,7 +473,7 @@ intersection3f intersect(Scene* scene, ray3f ray) {
                     sintersection.ray_t = t;
                     sintersection.hit = true;
                     sintersection.mat = mesh->mat;
-                    sintersection.norm = mesh->norm[tri.x];
+                    sintersection.norm = mesh->norm[tri.x] + V * (mesh->norm[tri.y] - mesh->norm[tri.x]) + U * (mesh->norm[tri.z] - mesh->norm[tri.x]);
                     sintersection.pos = posOnPlane;
                     if(mesh->texcoord.size() != 0){
                         vec2f sinterCoord = mesh->texcoord[tri.x] + V * (mesh->texcoord[tri.y] - mesh->texcoord[tri.x]) + U * (mesh->texcoord[tri.z] - mesh->texcoord[tri.x]);

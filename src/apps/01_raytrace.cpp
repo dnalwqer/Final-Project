@@ -1,6 +1,8 @@
 #include "intersect.h"
 #include "scene.h"
+#include "montecarlo.h"
 #include "fstream"
+
 
 #include <iostream>
 #include <thread>
@@ -16,7 +18,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
 
 
 // lookup texture value
-vec3f lookup_scaled_texture(vec3f value, image3f* texture, vec2f uv, bool tile = true) {
+vec3f lookup_scaled_texture(vec3f value, image3f* texture, vec2f uv, bool tile = false) {
     if(not texture) return value;
 
     // for now, simply clamp texture coords
@@ -45,7 +47,14 @@ vec3f eval_brdf(vec3f kd, vec3f ks, float n, vec3f v, vec3f l, vec3f norm, bool 
 
 // evaluate the environment map
 vec3f eval_env(vec3f ke, image3f* ke_txt, vec3f dir) {
-    return ke; // <- placeholder
+    if (ke_txt != nullptr) {
+        float u = atan2(dir.x, dir.z) / (2 * pif);
+        float v = 1 - acos(dir.y) / pif;
+        return lookup_scaled_texture(ke, ke_txt, vec2f(u, v), true);
+    }
+    else {
+        return ke; // <- placeholder
+    }
 }
 
 vec3f infract(vec3f d, vec3f n, float last_nt, float nt){
@@ -55,33 +64,33 @@ vec3f infract(vec3f d, vec3f n, float last_nt, float nt){
 }
 
 // compute the color corresponing to a ray by raytracing
-vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int countC) {
+vec3f raytrace_ray(Scene* scene, const ray3f& ray, Rng *rng, int depth,int count, int countC) {
     // get scene intersection
     auto intersection = intersect(scene,ray);
-    
+
     // if not hit, return background (looking up the texture by converting the ray direction to latlong around y)
     if(not intersection.hit) {
         return eval_env(scene->background, scene->background_txt, ray.d);
     }
-    
+
     // setup variables for shorter code
     auto pos = intersection.pos;
     auto norm = intersection.norm;
     auto v = -ray.d;
-    
+
     // compute material values by looking up textures
     auto ke = lookup_scaled_texture(intersection.mat->ke, intersection.mat->ke_txt, intersection.texcoord);
     auto kd = lookup_scaled_texture(intersection.mat->kd, intersection.mat->kd_txt, intersection.texcoord);
     auto ks = lookup_scaled_texture(intersection.mat->ks, intersection.mat->ks_txt, intersection.texcoord);
     auto n = intersection.mat->n;
     auto mf = intersection.mat->microfacet;
-    
+
     // accumulate color starting with ambient
     auto c = scene->ambient * kd;
-    
+
     // add emission if on the first bounce
     if(depth == 0 and dot(v,norm) > 0) c += ke;
-    
+
     // foreach point light
 //    for(auto light : scene->lights) {
 //        // compute light response
@@ -105,44 +114,31 @@ vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int coun
 //        }
 //    }
 
-    put_your_code_here("loop over surfaces and do surface-ray intersection tests");
-    // foreach surface
-    // skip if no emission from surface
-    // todo: pick a point on the surface, grabbing normal, area, and texcoord
-    // check if quad
-    // generate a 2d random number
-    // compute light position, normal, area
-    // set tex coords as random value got before
-    // else if sphere
-    // generate a 2d random number
-    // compute light position, normal, area
-    // set tex coords as random value got before
-    // get light emission from material and texture
-    // compute light direction
-    // compute light response (ke * area * cos_of_light / dist^2)
-    // compute the material response (brdf*cos)
-    // multiply brdf and light
-    // check for shadows and accumulate if needed
-    // if shadows are enabled
-    // perform a shadow check and accumulate
-    // else just accumulate
-    
     // todo: sample the brdf for environment illumination if the environment is there
     // if scene->background is not zero3f
-    // pick direction and pdf
-    // compute the material response (brdf*cos)
-    // todo: accumulate response scaled by brdf*cos/pdf
-    // if material response not zero3f
-    // if shadows are enabled
-    // perform a shadow check and accumulate
-    // else just accumulate
-    
-    // todo: sample the brdf for indirect illumination
-    // if kd and ks are not zero3f and haven't reach max_depth
-    // pick direction and pdf
-    // compute the material response (brdf*cos)
-    // accumulate recersively scaled by brdf*cos/pdf
-    
+    if (scene->background != zero3f) {
+        pair<vec3f, float> res = sample_brdf(kd, ks, n, v, norm, rng->next_vec2f(), rng->next_float());
+
+        // compute the material response (brdf*cos)
+        vec3f brdfcos = max(dot(res.first, norm), 0.0f) * eval_brdf(kd, ks, n, v, normalize(res.first), norm, mf);
+        // todo: accumulate response scaled by brdf*cos/pdf
+        vec3f shade = brdfcos * eval_env(scene->background, scene->background_txt, normalize(res.first)) / res.second;
+        // if material response not zero3f
+        if (brdfcos != zero3f) {
+            // if shadows are enabled
+            if (scene->path_shadows) {
+                // perform a shadow check and accumulate
+                if (!intersect_shadow(scene, ray3f(pos, res.first))) {
+                    c += shade;
+                }
+            }
+            // else just accumulate
+            else {
+                c += shade;
+            }
+        }
+    }
+
     if(count >= 1 || countC >=1)  return zero3f;
     if(intersection.hit){
         vec3f color(0,0,0);
@@ -164,21 +160,19 @@ vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int coun
                 float R0 = sqr(intersection.mat->nt - 1) / sqr(intersection.mat->nt + 1);
                 float R = R0 + (1-R0) * pow(1-cf, 5);
                 if(t != zero3f){
-                       c += 0.4*raytrace_ray(scene, ray3f(intersection.pos + 0.001 * ray.d, t), depth, count, countC+1);
+                       c += 0.4*raytrace_ray(scene, ray3f(intersection.pos + 0.001 * ray.d, t), rng, depth, count, countC+1);
                 }
         }
 
         //reflect
         if(intersection.mat->kr != zero3f){
-            c += (intersection.mat->kr * raytrace_ray(scene, ray3f(intersection.pos, newRay), depth, count+1, countC)) ;
+            c += (intersection.mat->kr * raytrace_ray(scene, ray3f(intersection.pos, newRay), rng, depth, count+1, countC)) ;
         }
 
         for(int i = 0 ; i < scene->lights.size() ; ++i){
             vec3f l = scene->lights[i]->frame.o - intersection.pos;
             double dis = (abs(dot(l,l)));
             l = normalize(l);
-            //ambient
-//            c += scene->ambient *  normalize(scene->lights[i]->intensity);
 
             //diffuse
             double mul = dot(intersection.norm,l);
@@ -191,45 +185,33 @@ vec3f raytrace_ray(Scene* scene, const ray3f& ray, int depth,int count, int coun
             color += ks * (scene->lights[i]->intensity/dis) * pow((mul > 0 ? mul : 0),n) ;
 
             //shadow
-            ray3f raySha(intersection.pos, normalize(scene->lights[i]->frame.o - (intersection.pos)));
-//            intersection3f intersecSha = intersect(scene,raySha);
-//            if(intersecSha.hit){
-                int shadowN = 1;
-                double sampleLength = 0.5;
-                srand((unsigned)time(NULL));
-                vec3f colorShadow = zero3f;
-                double ope = 1.0;
-                for(int shadowCount = 0 ; shadowCount < shadowN*shadowN ; ++shadowCount){
- //                   vec3f posShadow(intersection.pos.x + ope * rand()/RAND_MAX * sampleLength, intersection.pos.y + ope * rand()/RAND_MAX * sampleLength, intersection.pos.z + ope * rand()/RAND_MAX * sampleLength);
-                    vec3f posShadow = intersection.pos+0.1*intersection.norm;
-                    ray3f rayShadow(posShadow, normalize(scene->lights[i]->frame.o - (posShadow)));
-                    if(! intersect(scene,rayShadow).hit){
-                        colorShadow += color;
-                    }
-                    ope *= -1.0;
-                }
-                colorShadow /= shadowN * shadowN;
-                c += colorShadow;
-//            }else
-//                c += color;
+            int shadowN = 5;
+            double sampleLength = 0.5;
+            srand((unsigned)time(NULL));
+            vec3f colorShadow = zero3f;
+            double ope = 1.0;
+            for(int shadowCount = 0 ; shadowCount < shadowN*shadowN ; ++shadowCount){
+               vec3f posShadow(intersection.pos.x + ope * rand()/RAND_MAX * sampleLength, intersection.pos.y + ope * rand()/RAND_MAX * sampleLength, intersection.pos.z + ope * rand()/RAND_MAX * sampleLength);
+//                  vec3f posShadow = intersection.pos+0.1*intersection.norm;
+               ray3f rayShadow(posShadow, normalize(scene->lights[i]->frame.o - (posShadow)));
+               if(! intersect(scene,rayShadow).hit){
+                    colorShadow += color;
+               }
+               ope *= -1.0;
+            }
+            colorShadow /= shadowN * shadowN;
+            c += colorShadow;
         }
     }
 
-    // if the material has reflections
-    if(not (intersection.mat->kr == zero3f)) {
-        // create the reflection ray
-        // accumulate the reflected light (recursive call) scaled by the material reflection
-    }
-    
-    // return the accumulated color
     return c;
 }
 
 // raytrace an image
-void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool verbose) {
-    
+void ray_trace(Scene* scene, image3f* image, RngImage *rngs,int offset_row, int skip_row, bool verbose) {
+
     // if no anti-aliasing
-    scene->image_samples = 1;
+//    scene->image_samples = 5;
     if (scene->image_samples == 1) {
         // foreach image row (go over image height)
         for( int y = offset_row; y < scene->image_height; y+= skip_row )
@@ -239,13 +221,14 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
             for( int x = 0; x < scene->image_width; x++ )
             {   if(verbose) message("\r  renderingx %03d/%03d        ", x, scene->image_height);
                 // compute ray-camera parameters (u,v) for the pixel
+                auto rng = &rngs->at(x, y);
                 float u = (x + 0.5f) / image->width();
                 float v = (y + 0.5f) / image->height();
                 const vec3f Q_uv( ( u-0.5f ) * scene->camera->width, ( v-0.5f ) * scene->camera->height, - scene->camera->dist);
                 // compute camera ray
                 const ray3f view_ray = transform_ray( scene->camera->frame, ray3f( zero3f, normalize(Q_uv) ) );
                 // set pixel to the color raytraced with the ray
-                vec3f color = raytrace_ray(scene, view_ray, 0, 0, 0);
+                vec3f color = raytrace_ray(scene, view_ray, rng, 0, 0, 0);
                 image->at(x, y) = color;
             }
         }
@@ -262,6 +245,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
                 // init accumulated color
                 vec3f color = zero3f;
                 // foreach sample in y
+                auto rng = &rngs->at(x, y);
                 for (int j = 0; j < scene->image_samples; j++) {
                     // foreach sample in x
                     for( int i = 0; i < scene->image_samples; i++ )
@@ -273,7 +257,7 @@ void ray_trace(Scene* scene, image3f* image, int offset_row, int skip_row, bool 
                         vec3f Q_uv( ( u-0.5f ) * scene->camera->width, ( v-0.5f ) * scene->camera->height, - scene->camera->dist);
                         ray3f view_ray = transform_ray( scene->camera->frame, ray3f( zero3f, normalize(Q_uv) ) );
                         // set pixel to the color raytraced with the ray
-                        color += raytrace_ray(scene, view_ray, 0,0 ,0);
+                        color += raytrace_ray(scene, view_ray, rng, 0,0 ,0);
                     }
                 }
                 // scale by the number of samples
@@ -292,16 +276,16 @@ void test()
 
 // runs the raytrace over all tests and saves the corresponding images
 int main(int argc, char** argv) {
-    
+
     test();
-    
+
     auto args = parse_cmdline(argc, argv,
                               { "01_raytrace", "raytrace a scene",
                                   {  {"resolution",     "r", "image resolution", typeid(int),    true,  jsonvalue()}  },
                                   {  {"scene_filename", "",  "scene filename",   typeid(string), false, jsonvalue("scene.json")},
                                       {"image_filename", "",  "image filename",   typeid(string), true,  jsonvalue("")}  }
                               });
-    
+
     // generate/load scene either by creating a test scene or loading from json file
     string scene_filename = args.object_element("scene_filename").as_string();
     Scene *scene = nullptr;
@@ -313,25 +297,25 @@ int main(int argc, char** argv) {
         scene = load_json_scene(scene_filename);
     }
     error_if_not(scene, "scene is nullptr");
-    
+
     auto image_filename = (args.object_element("image_filename").as_string() != "") ?
     args.object_element("image_filename").as_string() :
     scene_filename.substr(0,scene_filename.size()-5)+".png";
-    
+
     if(not args.object_element("resolution").is_null()) {
         scene->image_height = args.object_element("resolution").as_int();
         scene->image_width = scene->camera->width * scene->image_height / scene->camera->height;
     }
-    
+
     message("accelerating...\n");
     accelerate(scene);
-    
+
     message("rendering %s...\n", scene_filename.c_str());
     auto image = ray_trace(scene, parallel_raytrace);
-    
+
     message("\nwriting to png...\n");
     write_png(image_filename, image, true);
-    
+
     delete scene;
     message("done\n");
 }
@@ -341,22 +325,26 @@ int main(int argc, char** argv) {
 image3f ray_trace(Scene* scene, bool multithread) {
     // allocate an image of the proper size
     auto image = image3f(scene->image_width, scene->image_height);
-    
+
+    // create a random number generator for each pixel
+    auto rngs = RngImage(scene->image_width, scene->image_height);
+
     // if multitreaded
     if(multithread) {
         // get pointers
         auto image_ptr = &image;
+        auto rngs_ptr = &rngs;
         // allocate threads and pathtrace in blocks
         auto threads = vector<thread>();
         auto nthreads = thread::hardware_concurrency();
         for(auto tid : range(nthreads)) threads.push_back(thread([=](){
-            return ray_trace(scene,image_ptr,tid,nthreads,tid==0);}));
+            return ray_trace(scene,image_ptr,rngs_ptr,tid,nthreads,tid==0);}));
         for(auto& thread : threads) thread.join();
     } else {
         // pathtrace all rows
-        ray_trace(scene, &image, 0, 1, true);
+        ray_trace(scene, &image, &rngs, 0, 1, true);
     }
-    
+
     // done
     return image;
 }

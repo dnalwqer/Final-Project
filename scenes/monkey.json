@@ -14,9 +14,9 @@
     ],
     "surfaces": [
         {
-            "frame": { "o": [0,8,-10], "x": [0,1,0], "y": [0,0,-1], "z": [0,0,-1] },
+             "frame": { "o": [0,-1,0], "x": [1,0,0], "y": [0,0,-1], "z": [0,1,0] },
             "radius":  10, "isquad": true,
-            "material": { "kd": [1,1,1], "ks": [1,0,0], "kr": [0.5,0.5,0.5], "n": 100 }
+            "material": { "kd": [1,1,1], "ks": [1,0,0], "kr": [0.2,0.2,0.2], "n": 100 }
         }
     ],
     "lights": [
@@ -24,7 +24,8 @@
         { "frame": { "o": [1.2,1.3,0] }, "intensity": [2,2,2] }
   
     ],
-    "background": [0,0,0],
+    "background": [0.6, 0.6, 0.6],
+    "background_txt": "models/pisa_latlong.pfm",
     "image_samples": 15,
     "path_max_depth": 0
 }
