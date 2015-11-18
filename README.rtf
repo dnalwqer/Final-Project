@@ -1,0 +1,60 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf130
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fmodern\fcharset0 Courier;\f2\fnil\fcharset0 Menlo-Regular;
+}
+{\colortbl;\red255\green255\blue255;\red252\green109\blue255;\red81\green80\blue111;\red0\green0\blue0;
+\red196\green178\blue157;\red252\green109\blue255;\red81\green80\blue111;\red196\green178\blue157;\red109\green115\blue232;
+\red170\green13\blue145;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Our final project includes raytracing and modelling. The raytracing is in the \'91assignment01\'92 folder and modelling is in the \'91assignment02\'92 folder.\
+\
+In the assignment01, we focus on many topics of raytracing.\
+1. texture tiling\
+we define a function: \
+void lookup_scaled_texture(vec3f value, image3f *image, vec2f uv, bool tile)\
+\
+we can set the tile true to do the texture tiling, set the tile false to stop doing the tiling.\
+We can go to the scene folder and run ../bin/mk/01_raytracing 01_texture.json to get the result.\
+\
+2. environment illumination\
+We can go to the scene folder and run ../bin/mk/01_raytracing 03_env.json to get the result.\
+\
+3. indirect illumination\
+We can go to the scene folder and run ../bin/mk/01_raytracing 07_cb_indirect.json to get indirect illumination result.\
+run ../bin/mk/01_raytracing 06_cb_direct.json to get the direct illumination result.\
+\
+4. Mesh Intersection\
+Mesh Intersection is implemented in Intersect.h file, the function is the 
+\f1 \cf2 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 intersection3f\cf3 \strokec3  \cf4 \strokec4 intersect\cf5 \strokec5 (\cf2 \strokec2 Scene\cf5 \strokec5 *\cf3 \strokec3  \cf4 \strokec4 scene\cf5 \strokec5 ,\cf3 \strokec3  \cf2 \strokec2 ray3f\cf3 \strokec3  \cf4 \strokec4 ray\cf5 \strokec5 )\cf3 \strokec3 ;
+\f0 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+\
+5. Soft Shadow\
+Soft Shadow is implemented in 01_raytrace.cpp file, in the function of 
+\f1 \cf6 \expnd0\expndtw0\kerning0
+vec3f\cf7  \cf0 raytrace_ray\cf8 (\cf6 Scene\cf8 *\cf7  \cf0 scene\cf8 ,\cf7  \cf9 const\cf7  \cf6 ray3f\cf8 &\cf7  \cf0 ray\cf8 ,\cf7  \cf6 Rng\cf7  \cf8 *\cf0 rng\cf8 ,\cf7  \cf9 int\cf7  \cf0 depth\cf8 ,\cf9 int\cf7  \cf0 count\cf8 ,\cf7  \cf9 int\cf7  \cf0 countC\cf8 )\cf0 \
+
+\f0 \kerning1\expnd0\expndtw0 Change the value of 
+\f1 \expnd0\expndtw0\kerning0
+shadowN will change sample numbers. Each light have shadowN\
+
+\f0 \kerning1\expnd0\expndtw0 *
+\f1 \expnd0\expndtw0\kerning0
+shadowN sample numbers.\
+
+\f0 \kerning1\expnd0\expndtw0 We can go to the scene folder and run ../bin/mk/01_raytracing monkey.json to get the result.\
+\
+6. Demo Scene\
+Demo Scene is sorted in money.json file. \
+We can go to the scene folder and run ../bin/mk/01_raytracing monkey.json to get the result.\
+\
+In the assignment02, we focus on the surface patches. we define a function:\
+\pard\tx529\pardeftab529\pardirnatural\partightenfactor0
+
+\f2\fs22 \cf10 \CocoaLigature0 void\cf0  subdivide_bezier_surface(Mesh *mesh) \
+//perform the surface patches.\
+\
+We can go to the scenes folder and run ../bin/mk/02_model 07_patches.json\
+In the json file, we can set the subdivision_bezier_level to get different surfaces.\
+}

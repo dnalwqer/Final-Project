@@ -1,0 +1,31 @@
+{
+    "lookat_camera": { "from": [0,0.5,4] },
+    "meshes": [
+        {
+            "json_mesh": "qq.json",
+            "frame": { "o": [-1.20,0.5,-3] },
+            "material": { "ks": [0.7,0.7,0.7], "kd": [1,1,1], "n": 100, "kd_txt": "qq.png"}
+       },
+       {
+            "json_mesh": "long.json",
+            "frame": { "o": [1.0,-0.4,-1.5] },
+            "material": { "ks": [1,1,1], "kd": [0.725,0.71,0.68], "n": 10}
+       }
+    ],
+    "surfaces": [
+        {
+             "frame": { "o": [0,-1,0], "x": [1,0,0], "y": [0,0,-1], "z": [0,1,0] },
+            "radius":  10, "isquad": true,
+            "material": { "kd": [1,1,1], "ks": [1,0,0], "kr": [0.1,0.1,0.1], "n": 100 }
+        }
+    ],
+    "lights": [
+        { "frame": { "o": [14,22,5] }, "intensity": [40,40,40] },
+        { "frame": { "o": [1.2,1.3,0] }, "intensity": [2,2,2] }
+  
+    ],
+    "background": [0.4, 0.4, 0.4],
+    "background_txt": "zhi.png",
+    "image_samples": 15,
+    "path_max_depth": 0
+}
